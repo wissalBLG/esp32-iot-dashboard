@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Meadow Watch — Pet Care Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap');
+
+  :root{
+    --sky1: #bdeec2;
+    --sky2: #eaf7d9;
+    --forest: #1f4d33;
+    --forest-deep: #143823;
+    --grass: #4f9d5c;
+    --grass-deep: #397847;
+    --leaf: #86c96a;
+    --sun: #ffd166;
+    --sun-deep: #f2a93a;
+    --bark: #8a5a34;
+    --cream: #fefaf0;
+    --berry: #e8637a;
+    --panel: #ffffff;
+    --line: #d9ecd0;
+    --ink: #234427;
+    --muted: #6f8a72;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{ height:100%; }
+  body{
+    background: linear-gradient(180deg, var(--sky1) 0%, var(--sky2) 45%, #f7fbef 100%);
+    color: var(--ink);
+    font-family:'Quicksand', sans-serif;
+    min-height:100vh;
+    overflow-x:hidden;
+    position:relative;
+    padding: 50px 20px 40px;
+  }
+
+  /* ================= Pure-CSS animated scenery ================= */
+  .scene{ position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+
+  /* Sun */
+  .sun{
+    position:absolute; top: 48px; right: 64px;
+    width: 92px; height: 92px; border-radius:50%;
+    background: radial-gradient(circle, var(--sun) 40%, var(--sun-deep) 100%);
+    box-shadow: 0 0 60px 18px rgba(255,209,102,0.55);
+    animation: sunPulse 5s ease-in-out infinite;
+  }
+  @keyframes sunPulse{ 0%,100%{ transform: scale(1); } 50%{ transform: scale(1.06); } }
+  .sun-rays{
+    position:absolute; top: 20px; right: 36px;
+    width: 148px; height:148px; border-radius:50%;
+    background: conic-gradient(rgba(255,209,102,0.35) 0deg 8deg, transparent 8deg 40deg);
+    animation: spin 30s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  /* Drifting leaves */
+  .leaf{
+    position:absolute; bottom:-40px; font-size: 20px; opacity:0.8;
+    animation: driftUp linear infinite;
+  }
+  @keyframes driftUp{
+    0%{ transform: translate(0,0) rotate(0deg); opacity:0; }
+    10%{ opacity:0.85; }
+    100%{ transform: translate(60px,-115vh) rotate(300deg); opacity:0; }
+  }
+
+  /* Paw trail */
+  .paw{
+    position:absolute; bottom: 120px; font-size:16px; color: var(--forest);
+    opacity:0; animation: pawStep 6s ease-in-out infinite;
+  }
+  @keyframes pawStep{
+    0%{ opacity:0; transform: translateY(4px) scale(0.8); }
+    15%{ opacity:0.55; transform: translateY(0) scale(1); }
+    35%{ opacity:0; }
+    100%{ opacity:0; }
+  }
+
+  /* Rolling hills */
+  .hill{
+    position:absolute; bottom:-60px; left:50%; transform:translateX(-50%);
+    width: 160%; border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  }
+  .hill.back{ height: 180px; background: var(--leaf); opacity:0.55; bottom:-90px; }
+  .hill.front{ height: 150px; background: var(--grass); }
+
+  /* Swaying grass blades along the very bottom */
+  .grass-row{ position:absolute; bottom:0; left:0; right:0; height:46px; display:flex; align-items:flex-end; justify-content:space-around; }
+  .blade{
+    width: 6px; height: 34px; background: var(--grass-deep);
+    border-radius: 6px 6px 0 0; transform-origin: bottom center;
+    animation: sway 2.6s ease-in-out infinite;
+  }
+  @keyframes sway{ 0%,100%{ transform: rotate(-6deg); } 50%{ transform: rotate(6deg); } }
+
+  .wrap{ position:relative; z-index:1; max-width: 920px; margin:0 auto; }
+
+  header{ text-align:center; margin-bottom: 40px; }
+  .eyebrow{ font-size:11px; letter-spacing:0.32em; text-transform:uppercase; color: var(--forest); opacity:0.75; margin-bottom:12px; }
+  h1{ font-family:'Baloo 2', sans-serif; font-weight:800; font-size:50px; color: var(--forest-deep); }
+  header p{ color: var(--muted); font-size:14.5px; margin-top:10px; }
+
+  /* ---- Notification toast ---- */
+  .toast{
+    position: fixed; top: 22px; left:50%; transform: translateX(-50%) translateY(-140%);
+    background: linear-gradient(135deg, var(--berry), #cf4a61);
+    color: #fff; padding: 14px 22px; border-radius: 16px;
+    display:flex; align-items:center; gap: 12px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+    z-index: 50; font-weight:600; font-size:14px;
+    transition: transform 0.5s cubic-bezier(.2,.9,.3,1.3);
+    max-width: 90vw;
+  }
+  .toast.show{ transform: translateX(-50%) translateY(0); }
+  .toast .icon{ font-size:20px; }
+
+  /* ---- Hero with CSS-drawn dog ---- */
+  .hero{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 28px;
+    padding: 30px;
+    display:flex; align-items:center; gap: 28px;
+    margin-bottom: 26px;
+    box-shadow: 0 10px 30px rgba(31,77,51,0.08);
+  }
+  @media (max-width:700px){ .hero{ flex-direction:column; text-align:center; } }
+
+  /* CSS-only dog character */
+  .pup{ position:relative; width:100px; height:90px; flex-shrink:0; animation: breathe 3.2s ease-in-out infinite; }
+  @keyframes breathe{ 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-3px); } }
+  .pup-body{ position:absolute; bottom:0; left:14px; width:64px; height:50px; background: var(--bark); border-radius: 50% 50% 46% 46%; }
+  .pup-head{ position:absolute; top:6px; left:26px; width:46px; height:42px; background: var(--bark); border-radius:50%; }
+  .pup-ear{ position:absolute; top:2px; width:16px; height:22px; background:#6e4526; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; }
+  .pup-ear.l{ left:22px; transform: rotate(-18deg); }
+  .pup-ear.r{ left:56px; transform: rotate(18deg); }
+  .pup-snout{ position:absolute; top:26px; left:40px; width:20px; height:16px; background:#f3e3cf; border-radius:50%; }
+  .pup-nose{ position:absolute; top:28px; left:47px; width:7px; height:6px; background:#2b1c10; border-radius:50%; }
+  .pup-eye{ position:absolute; top:18px; width:4px; height:4px; background:#2b1c10; border-radius:50%; }
+  .pup-eye.l{ left:33px; } .pup-eye.r{ left:47px; }
+  .pup-tail{
+    position:absolute; bottom:10px; left:2px; width:22px; height:8px; background: var(--bark);
+    border-radius: 10px; transform-origin: right center;
+    animation: wag 0.55s ease-in-out infinite;
+  }
+  @keyframes wag{ 0%,100%{ transform: rotate(10deg); } 50%{ transform: rotate(-22deg); } }
+
+  .hero-text .status{ font-family:'Baloo 2', sans-serif; font-weight:700; font-size: 25px; color: var(--forest-deep); }
+  .hero-text .sub{ color: var(--muted); font-size:13.5px; margin-top:6px; }
+  .led-row{ display:flex; gap:16px; margin-top:12px; flex-wrap:wrap; justify-content:center; }
+  .led{ display:flex; align-items:center; gap:6px; font-size:10.5px; color: var(--muted); letter-spacing:0.05em; text-transform:uppercase; }
+  .led i{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .led.l1 i{ background: var(--grass); box-shadow:0 0 8px var(--grass); }
+  .led.l2 i{ background: var(--sun-deep); box-shadow:0 0 8px var(--sun-deep); animation: blink 1.5s infinite; }
+  @keyframes blink{ 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+  /* ---- Bowls ---- */
+  .bowls{ display:grid; grid-template-columns: 1fr 1fr; gap:18px; margin-bottom: 26px; }
+  @media (max-width:700px){ .bowls{ grid-template-columns:1fr; } }
+  .bowl-card{ background: var(--panel); border:1px solid var(--line); border-radius:24px; padding:24px; text-align:center;
+    box-shadow: 0 8px 24px rgba(31,77,51,0.06); }
+  .bowl-card .label{ font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color: var(--muted); margin-bottom:16px; }
+
+  .dish{ position:relative; width:130px; height:96px; margin:0 auto 16px; }
+  .dish-rim{ position:absolute; bottom:0; left:0; right:0; height:80px;
+    border-radius: 0 0 65px 65px / 0 0 52px 52px;
+    background: #eef7e6; border:3px solid var(--line); border-top:none; overflow:hidden; }
+  .dish-fill{ position:absolute; bottom:0; left:0; right:0; height: var(--lvl, 50%); transition: height 0.6s ease; }
+  .dish-fill.water{ background: linear-gradient(180deg, #7fd0e0, #429fb3); }
+  .dish-fill.food{ background: linear-gradient(180deg, var(--sun), var(--sun-deep)); }
+
+  .pct{ font-family:'Baloo 2', sans-serif; font-size: 22px; margin-bottom:4px; }
+  .pct.ok{ color: #3f9db0; }
+  .pct.food-ok{ color: var(--sun-deep); }
+  .pct.warn{ color: var(--berry); }
+  .bowl-foot{ font-size:12px; color: var(--muted); margin-bottom:16px; }
+
+  .btn{ font-weight:700; font-size:13px; border:none; padding: 11px 22px; border-radius: 999px; cursor:pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease; }
+  .btn:hover{ transform: translateY(-2px); }
+  .btn.water-btn{ background: linear-gradient(135deg, #7fd0e0, #429fb3); color:#0e2b32; }
+  .btn.food-btn{ background: linear-gradient(135deg, var(--sun), var(--sun-deep)); color:#3a2705; }
+  .btn.water-btn:hover{ box-shadow: 0 8px 20px rgba(66,159,179,0.3); }
+  .btn.food-btn:hover{ box-shadow: 0 8px 20px rgba(242,169,58,0.35); }
+
+  /* ---- Info grid ---- */
+  .grid{ display:grid; grid-template-columns: repeat(3,1fr); gap:16px; margin-bottom: 26px; }
+  @media (max-width:700px){ .grid{ grid-template-columns:1fr; } }
+  .card{ background: var(--panel); border:1px solid var(--line); border-radius:18px; padding:20px;
+    box-shadow: 0 6px 18px rgba(31,77,51,0.05); }
+  .card .label{ font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color: var(--muted); margin-bottom:8px; }
+  .card .value{ font-family:'Baloo 2', sans-serif; font-size:24px; color: var(--forest-deep); }
+  .card .foot{ font-size:12px; color: var(--muted); margin-top:6px; }
+
+  /* ---- Activity + wellness ---- */
+  .activity-section{ background: var(--panel); border:1px solid var(--line); border-radius:20px; padding:24px; margin-bottom:26px;
+    box-shadow: 0 6px 18px rgba(31,77,51,0.05); }
+  .activity-top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:18px; flex-wrap:wrap; gap:6px; }
+  .activity-top .label{ font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color: var(--muted); }
+  .activity-top .count{ font-family:'Baloo 2', sans-serif; font-size:21px; color: var(--forest); }
+  .chart-row{ display:flex; align-items:flex-end; gap:10px; height:100px; padding:0 4px; }
+  .chart-col{ flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end; }
+  .chart-bar{ width:100%; max-width:34px; background: var(--grass); border-radius:6px 6px 3px 3px; transition: height 0.5s ease; }
+  .chart-label{ font-size:10.5px; color: var(--muted); }
+
+  .wellness{ display:flex; align-items:center; gap:14px; margin-top:20px; padding:14px 16px; border-radius:14px;
+    background: rgba(79,157,92,0.1); border:1px solid rgba(79,157,92,0.28); }
+  .wellness.flag{ background: rgba(232,99,122,0.1); border-color: rgba(232,99,122,0.3); }
+  .wellness .dot{ width:9px; height:9px; border-radius:50%; background: var(--grass); flex-shrink:0; }
+  .wellness.flag .dot{ background: var(--berry); }
+  .wellness .msg{ font-size:13px; color: var(--ink); }
+  .wellness .msg b{ font-weight:700; }
+
+  /* ---- Log ---- */
+  .log-section .label{ font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color: var(--muted); margin-bottom:12px; }
+  table{ width:100%; border-collapse:collapse; background: var(--panel); border:1px solid var(--line); border-radius:18px; overflow:hidden;
+    box-shadow: 0 6px 18px rgba(31,77,51,0.05); }
+  th,td{ text-align:left; padding:12px 18px; font-size:13px; border-bottom:1px solid var(--line); }
+  th{ background: #f2f9ec; color: var(--muted); font-weight:600; font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; }
+  tr:last-child td{ border-bottom:none; }
+  .tag{ display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; }
+  .tag.ok{ background: rgba(66,159,179,0.14); color:#3f9db0; }
+  .tag.food{ background: rgba(242,169,58,0.16); color: var(--sun-deep); }
+  .tag.low{ background: rgba(232,99,122,0.14); color: var(--berry); }
+
+  footer{ text-align:center; color: var(--muted); font-size:11.5px; margin-top:38px; position:relative; z-index:1; }
+</style>
+</head>
+<body>
+
+<div class="scene" id="scene">
+  <div class="sun-rays"></div>
+  <div class="sun"></div>
+  <div class="hill back"></div>
+  <div class="hill front"></div>
+  <div class="grass-row" id="grassRow"></div>
+</div>
+
+<div class="toast" id="toast">
+  <span class="icon">⚠️</span>
+  <span id="toastMsg">Something needs attention</span>
+</div>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">ESP32 · PIR · Water · Food · RTC</div>
+    <h1>Meadow Watch</h1>
+    <p>A sunny little corner keeping an eye on food, water, and wellbeing.</p>
+  </header>
+
+  <div class="hero">
+    <div class="pup">
+      <div class="pup-tail"></div>
+      <div class="pup-body"></div>
+      <div class="pup-ear l"></div>
+      <div class="pup-ear r"></div>
+      <div class="pup-head"></div>
+      <div class="pup-snout"></div>
+      <div class="pup-nose"></div>
+      <div class="pup-eye l"></div>
+      <div class="pup-eye r"></div>
+    </div>
+    <div class="hero-text">
+      <div class="status" id="statusWord">All quiet in the meadow</div>
+      <div class="sub" id="statusSub">No visits right now</div>
+      <div class="led-row">
+        <div class="led l1"><i></i>LED 1 — Bowl status</div>
+        <div class="led l2"><i></i>LED 2 — Pet is here</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bowls">
+    <div class="bowl-card">
+      <div class="label">Water Bowl</div>
+      <div class="dish"><div class="dish-rim"><div class="dish-fill water" id="waterFill"></div></div></div>
+      <div class="pct ok" id="waterPct">%</div>
+      <div class="bowl-foot" id="waterFoot">Topped up recently</div>
+      <button class="btn water-btn" onclick="refillWater()">💧 Refill Water</button>
+    </div>
+    <div class="bowl-card">
+      <div class="label">Food Dish</div>
+      <div class="dish"><div class="dish-rim"><div class="dish-fill food" id="foodFill"></div></div></div>
+      <div class="pct food-ok" id="foodPct">%</div>
+      <div class="bowl-foot" id="foodFoot">Last fed --- AM</div>
+      <button class="btn food-btn" onclick="dispenseFood()">🍖 Feed Now</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="label">Presence</div>
+      <div class="value" id="motionVal">Idle</div>
+      <div class="foot" id="motionFoot">Last visit 6:40 PM</div>
+    </div>
+    <div class="card">
+      <div class="label">Next Scheduled Feed</div>
+      <div class="value" id="nextFeed">6:00 PM</div>
+      <div class="foot">Auto-dispense enabled</div>
+    </div>
+    <div class="card">
+      <div class="label">Time &amp; Date</div>
+      <div class="value" id="clockVal">--:--</div>
+      <div class="foot" id="dateVal">— — —</div>
+    </div>
+  </div>
+
+  <div class="activity-section">
+    <div class="activity-top">
+      <div class="label">Visits today, by time of day</div>
+      <div class="count"><span id="visitCount">4</span> visits so far</div>
+    </div>
+    <div class="chart-row" id="chartRow"></div>
+    <div class="wellness" id="wellnessBox">
+      <div class="dot"></div>
+      <div class="msg" id="wellnessMsg">On pace with a typical day — <b>7-day average is -----visits</b>.</div>
+    </div>
+  </div>
+
+  <div class="log-section">
+    <div class="label">Activity log</div>
+    <table>
+      <thead><tr><th>Time</th><th>Event</th><th>Detail</th></tr></thead>
+      <tbody id="logBody">
+        <tr><td>18:40</td><td>Visit</td><td><span class="tag ok">Water — adequate</span></td></tr>
+        <tr><td>17:15</td><td>Auto-feed</td><td><span class="tag food">Dispensed</span></td></tr>
+        <tr><td>14:05</td><td>Visit</td><td><span class="tag ok">Water — adequate</span></td></tr>
+        <tr><td>09:52</td><td>Visit</td><td><span class="tag low">Water — low, refilled</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer>Local dashboard hosted directly from the ESP32 · plain HTML / CSS / JS, no fetch or JSON</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // Mock only — no fetch(), no JSON, no SPIFFS.
+  // All background animation (sun, hills, grass, leaves, paw trail, dog) is pure CSS —
+  // JS here only builds a few repeated elements (grass blades, leaves) and drives
+  // the same sensor-simulation logic as before.
+const SUPABASE_URL = "https://ibzaduavwffveksmoxwm.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_t2oa7YCKVnvlI_cHmT2K3Q_ZHkCLbxY";
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
+
+  (function buildScene(){
+    var scene = document.getElementById('scene');
+    // drifting leaves
+    for (var i = 0; i < 9; i++){
+      var leaf = document.createElement('div');
+      leaf.className = 'leaf';
+      leaf.textContent = (i % 2 === 0) ? '🍃' : '🌿';
+      leaf.style.left = (Math.random()*100) + '%';
+      leaf.style.animationDuration = (10 + Math.random()*10) + 's';
+      leaf.style.animationDelay = (Math.random()*12) + 's';
+      scene.appendChild(leaf);
+    }
+    // paw trail
+    for (var j = 0; j < 5; j++){
+      var paw = document.createElement('div');
+      paw.className = 'paw';
+      paw.textContent = '🐾';
+      paw.style.left = (20 + j*15) + '%';
+      paw.style.animationDelay = (j*0.5) + 's';
+      scene.appendChild(paw);
+    }
+    // grass blades
+    var row = document.getElementById('grassRow');
+    for (var k = 0; k < 40; k++){
+      var blade = document.createElement('div');
+      blade.className = 'blade';
+      blade.style.animationDelay = (Math.random()*2) + 's';
+      blade.style.height = (24 + Math.random()*16) + 'px';
+      row.appendChild(blade);
+    }
+  })();
+
+  function pad(n){ return n < 10 ? '0' + n : n; }
+  function updateClock(){
+    var now = new Date();
+    document.getElementById('clockVal').textContent = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    document.getElementById('dateVal').textContent = days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate();
+  }
+
+  var toastTimer = null;
+  function notify(message, icon){
+    var toast = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = message;
+    toast.querySelector('.icon').textContent = icon || '⚠️';
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toast.classList.remove('show'); }, 4200);
+  }
+
+  var waterLevel = null;
+  var foodLevel = null;
+  var motionDetected = false;
+  function renderWater(){
+     if (waterLevel === null) {
+        document.getElementById('waterFill').style.setProperty('--lvl', '0%');
+        document.getElementById('waterPct').textContent = '--%';
+        document.getElementById('waterPct').className = 'pct';
+        document.getElementById('waterFoot').textContent = 'Waiting for sensor data';
+        return;
+    }
+    document.getElementById('waterFill').style.setProperty('--lvl', waterLevel + '%');
+    document.getElementById('waterPct').textContent = waterLevel + '%';
+    var pctEl = document.getElementById('waterPct');
+    if (waterLevel < 5){
+      pctEl.className = 'pct warn';
+      document.getElementById('waterFoot').textContent = 'Needs a refill';
+      notify('Water bowl is running low 💧', '💧');
+    } else {
+      pctEl.className = 'pct ok';
+      document.getElementById('waterFoot').textContent = 'Topped up recently';
+    }
+  }
+
+  function renderFood(){
+    document.getElementById('foodFill').style.setProperty('--lvl', foodLevel + '%');
+    document.getElementById('foodPct').textContent = foodLevel + '%';
+    var pctEl = document.getElementById('foodPct');
+    if (foodLevel < 5){
+      pctEl.className = 'pct warn';
+      document.getElementById('foodFoot').textContent = 'Dish is nearly empty';
+      notify('Food dish is almost empty 🍖', '🍖');
+    } else {
+      pctEl.className = 'pct food-ok';
+    }
+  }
+async function refillWater() {
+    const { data, error } = await supabaseClient
+        .from('commands')
+        .insert([
+            {
+                command: 'refill_water',
+                executed: false
+            }
+        ])
+        .select();
+    if (error) {
+        console.error("Refill command error:", error);
+        notify("Could not send refill command", "⚠️");
+        return;
+    }
+    console.log("Refill command sent:", data);
+    document.getElementById('waterFoot').textContent =
+        'Refill command sent';
+    notify('Refill command sent ✓', '💧');
+}
+ 
+  async function dispenseFood(){
+  const { data, error } = await supabaseClient
+    .from('commands')
+    .insert([
+      {
+        command: 'feed',
+        executed: false
+      }
+    ])
+    .select();
+  if (error) {
+    console.error("Command error:", error);
+    notify("Could not send feed command", "⚠️");
+    return;
+  }
+  console.log("Feed command sent:", data);
+  document.getElementById('foodFoot').textContent =
+    'Feed command sent';
+  notify('Feed command sent ✓', '🍖');
+}
+
+  function setIdle(){
+    document.getElementById('statusWord').textContent = 'All quiet in the meadow';
+    document.getElementById('statusSub').textContent = 'No visits right now';
+    document.getElementById('motionVal').textContent = 'Idle';
+  }
+  function startVisit(){
+    document.getElementById('statusWord').textContent = 'A visitor at the bowl';
+    document.getElementById('statusSub').textContent = 'Drinking now';
+    document.getElementById('motionVal').textContent = 'Detected';
+    document.getElementById('motionFoot').textContent = 'Since ' + pad(new Date().getHours()) + ':' + pad(new Date().getMinutes());
+  }
+  function drinkTick(){
+    waterLevel = Math.max(6, waterLevel - 8);
+    renderWater();
+  }
+
+  var blocks = ['Night', 'Morning', 'Midday', 'Evening'];
+  var todayCounts = [0, 0, 0, 0];
+  var weeklyAvg   = [0, 0, 0, 0];
+  var weeklyAvgTotal = weeklyAvg.reduce(function(a,b){ return a+b; }, 0);
+
+  function renderChart(){
+    var row = document.getElementById('chartRow');
+    row.innerHTML = '';
+    var maxVal = Math.max.apply(null, todayCounts.concat(weeklyAvg), 1);
+    for (var i = 0; i < blocks.length; i++){
+      var col = document.createElement('div');
+      col.className = 'chart-col';
+      var barWrap = document.createElement('div');
+      barWrap.style.cssText = 'position:relative;width:100%;height:100%;display:flex;align-items:flex-end;justify-content:center;';
+      var bar = document.createElement('div');
+      bar.className = 'chart-bar';
+      bar.style.height = (todayCounts[i] / maxVal * 100) + '%';
+      barWrap.appendChild(bar);
+      col.appendChild(barWrap);
+      var label = document.createElement('div');
+      label.className = 'chart-label';
+      label.textContent = blocks[i] + ' · ' + todayCounts[i];
+      col.appendChild(label);
+      row.appendChild(col);
+    }
+  }
+
+  function renderWellness(){
+    var total = todayCounts.reduce(function(a,b){ return a+b; }, 0);
+    document.getElementById('visitCount').textContent = total;
+    var box = document.getElementById('wellnessBox');
+    var msg = document.getElementById('wellnessMsg');
+    var hour = new Date().getHours();
+    var dayProgress = Math.min(1, Math.max(hour / 20, 0.15));
+    var expectedByNow = Math.round(weeklyAvgTotal * dayProgress);
+
+    if (total <= expectedByNow - 2){
+      box.className = 'wellness flag';
+      msg.innerHTML = 'Fewer visits than usual — <b>' + total + ' so far vs. ~' + expectedByNow + ' expected</b>. Worth keeping an eye on.';
+      notify('Pet activity is lower than usual today 🐾', '🐾');
+    } else {
+      box.className = 'wellness';
+      msg.innerHTML = 'On pace with a typical day — <b>7-day average is ' + weeklyAvgTotal + ' visits</b>.';
+    }
+  }
+
+ 
+async function loadLatestSensorData() {
+  const { data, error } = await supabaseClient
+    .from('sensor_readings')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1);
+  if (error) {
+    console.error("Supabase error:", error);
+    return;
+  }
+  if (!data || data.length === 0) {
+    console.log("No sensor data yet.");
+    return;
+  }
+  const reading = data[0];
+  console.log("ESP32 data:", reading);
+  // Water level comes from the ESP32
+  waterLevel = Number(reading.water_level) || 0;
+  // We don't have a food sensor.
+  // Food is calculated from water.
+  foodLevel = 100 - waterLevel;
+  // PIR
+  motionDetected = Boolean(reading.motion);
+  renderWater();
+  renderFood();
+  if (motionDetected) {
+    startVisit();
+  } else {
+    setIdle();
+  }
+}
+
+
+// Start dashboard
+updateClock();
+setInterval(updateClock, 5000);
+renderWater();
+renderFood();
+renderChart();
+renderWellness();
+setIdle();
+
+
+// Get the latest ESP32 reading now
+loadLatestSensorData();
+
+
+// Check Supabase every 10 seconds
+setInterval(loadLatestSensorData, 10000);
+ 
+</script>
+</body>
+</html>
