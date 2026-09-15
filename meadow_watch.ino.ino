@@ -8,8 +8,8 @@
 // 1. WIFI
 // =====================================================
 
-const char* WIFI_SSID     = "Wissal";
-const char* WIFI_PASSWORD = "wasso.213";
+const char* WIFI_SSID     = "****";
+const char* WIFI_PASSWORD = "*******";
 // =====================================================
 // 2. SUPABASE
 // =====================================================
